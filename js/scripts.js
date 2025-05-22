@@ -778,7 +778,51 @@ function renderChart(chartConfig) {
                 y: Number(d[yAxisField])
             }))
         }];
-    } else if (chartType === 'gauge') {
+
+        // Pie chart options with animation and data labels
+        const chartOptions = {
+            chart: {
+                type: 'pie',
+                height: chartConfig.height || 400,
+                animation: {
+                    duration: 1200,
+                    easing: 'easeOutBounce'
+                }
+            },
+            title: {
+                text: chartConfig.title || 'Pie Chart'
+            },
+            plotOptions: {
+                pie: {
+                    allowPointSelect: true,
+                    cursor: 'pointer',
+                    animation: {
+                        duration: 1200,
+                        easing: 'easeOutBounce'
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        format: '<b>{point.name}</b>: {point.y:.2f}',
+                        style: {
+                            fontSize: '1.1em',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    showInLegend: true
+                }
+            },
+            tooltip: {
+                pointFormat: '{series.name}: <b>{point.y:.2f}</b>'
+            },
+            series: seriesData,
+            legend: {
+                enabled: chartConfig.showLegend !== false
+            }
+        };
+
+        Highcharts.chart(chartElement, chartOptions);
+        return;
+    }else if (chartType === 'gauge') {
         // Show first value as gauge
         const val = Number(chartData[0][yAxisField]);
         Highcharts.chart(chartElement, {
