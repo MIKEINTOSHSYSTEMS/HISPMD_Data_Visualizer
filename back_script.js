@@ -888,7 +888,7 @@ function renderChart(chartConfig) {
 
         Highcharts.chart(chartElement, chartOptions);
         return;
-    }else if (chartType === 'gauge') {
+    } else if (chartType === 'gauge') {
         // Show first value as gauge
         const val = Number(chartData[0][yAxisField]);
         Highcharts.chart(chartElement, {
@@ -1073,12 +1073,18 @@ function renderChart(chartConfig) {
                 // Theme options
                 const themeOptions = {
                     "Default": null,
-                    "Dark Unica": Highcharts.themes && Highcharts.themes.darkunica,
-                    "Grid Light": Highcharts.themes && Highcharts.themes.gridlight,
-                    "Sand Signika": Highcharts.themes && Highcharts.themes.sandsignika,
-                    "Hand Drawn": Highcharts.themes && Highcharts.themes.handdrawn,
-                    "Chalk": Highcharts.themes && Highcharts.themes.chalk
+                    "Dark Unica": typeof Highcharts.theme.darkUnica !== 'undefined' ? Highcharts.theme.darkUnica : null,
+                    "Google": Highcharts.theme.google || null,
+                    "Flat": Highcharts.theme.flat || null,
+                    "Grid Light": Highcharts.theme.gridLight || null,
+                    "Sand Signika": Highcharts.theme.sandSignika || null,
+                    "Economist": Highcharts.theme.economist || null,
+                    "Financial Times": Highcharts.theme.ft || null,
+                    "538": Highcharts.theme.fivethirtyeight || null,
+                    "Chalk": Highcharts.theme.chalk || null,
+                    "Hand Drawn": Highcharts.theme.handDrawn || null
                 };
+
 
                 // Create the map chart
                 const createMap = (paletteName = "Viridis", themeName = "Default") => {
@@ -1087,15 +1093,12 @@ function renderChart(chartConfig) {
                         chartElement.highcharts.destroy();
                     }
 
-                    // Clear previous controls if they exist
-                    const existingControls = chartContainer.querySelector('.map-controls');
-                    if (existingControls) {
-                        existingControls.remove();
-                    }
-
                     // Create controls container
                     const controlsContainer = document.createElement('div');
                     controlsContainer.className = 'map-controls';
+                    controlsContainer.style.marginBottom = '10px';
+                    controlsContainer.style.display = 'flex';
+                    controlsContainer.style.gap = '10px';
 
                     // Create palette selector
                     const paletteSelect = document.createElement('select');
@@ -1105,7 +1108,6 @@ function renderChart(chartConfig) {
                         const option = document.createElement('option');
                         option.value = palette;
                         option.textContent = palette;
-                        option.selected = palette === paletteName;
                         paletteSelect.appendChild(option);
                     });
 
@@ -1117,7 +1119,6 @@ function renderChart(chartConfig) {
                         const option = document.createElement('option');
                         option.value = theme;
                         option.textContent = theme;
-                        option.selected = theme === themeName;
                         themeSelect.appendChild(option);
                     });
 
@@ -1125,7 +1126,7 @@ function renderChart(chartConfig) {
                     controlsContainer.appendChild(themeSelect);
 
                     // Insert controls before the chart container
-                    chartContainer.insertBefore(controlsContainer, chartElement);
+                    chartElement.parentNode.insertBefore(controlsContainer, chartElement);
 
                     // Apply selected palette
                     const selectedPalette = colorPalettes[paletteName] || colorPalettes["Viridis"];
@@ -1260,24 +1261,9 @@ function renderChart(chartConfig) {
                         }
                     };
 
-                    // Apply theme if selected and available
+                    // Apply theme if selected
                     if (themeName !== "Default" && themeOptions[themeName]) {
                         Highcharts.setOptions(themeOptions[themeName]);
-                    } else {
-                        // Reset to default theme
-                        Highcharts.setOptions({
-                            colors: ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9',
-                                '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1'],
-                            chart: {
-                                backgroundColor: 'transparent'
-                            },
-                            title: {
-                                style: {
-                                    color: '#333',
-                                    fontSize: '16px'
-                                }
-                            }
-                        });
                     }
 
                     // Create the chart
@@ -1294,7 +1280,31 @@ function renderChart(chartConfig) {
                     });
 
                     themeSelect.addEventListener('change', function () {
-                        createMap(paletteSelect.value, this.value);
+                        const theme = themeOptions[this.value] || null;
+                        if (theme) {
+                            Highcharts.setOptions(theme);
+                            chart.update({
+                                chart: {
+                                    backgroundColor: 'transparent'
+                                }
+                            });
+                        } else {
+                            // Reset to default theme
+                            Highcharts.setOptions({
+                                colors: ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9',
+                                    '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1'],
+                                chart: {
+                                    backgroundColor: 'transparent'
+                                },
+                                title: {
+                                    style: {
+                                        color: '#333',
+                                        fontSize: '16px'
+                                    }
+                                }
+                            });
+                            chart.update();
+                        }
                     });
                 };
 
@@ -1311,7 +1321,7 @@ function renderChart(chartConfig) {
                 `;
             });
         return;
-    }  else {
+    } else {
         // For column/line/bar/area/stackedColumn etc.
         categories = [...new Set(chartData.map(d => d[xAxisField]))].sort();
 
@@ -1394,7 +1404,7 @@ function renderChart(chartConfig) {
             pointFormat: '<tr><td style="color: {series.color}">{series.name} ' +
                 '</td>' +
                 '<td style="text-align: right"><b> {point.y}</b></td></tr>',
-                //'<td style="text-align: right"><b> : {point.y}</b></td></tr>',
+            //'<td style="text-align: right"><b> : {point.y}</b></td></tr>',
             footerFormat: '</table>',
             valueDecimals: 2
         },
@@ -1712,7 +1722,7 @@ function addNewChart() {
             dataSource: chartFilters.newChartDataSource,
             dataSourceDetail: chartFilters.newChartDataSourceDetail,
             scope: chartFilters.newChartScope,
-            region: chartFilters.newChartRegion, 
+            region: chartFilters.newChartRegion,
             year: chartFilters.newChartYear
         }
     };

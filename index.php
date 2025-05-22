@@ -77,6 +77,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
     <script src="https://code.highcharts.com/maps/modules/accessibility.js"></script>
     <script src="https://code.highcharts.com/maps/modules/map.js"></script>
+    <!-- Include Highcharts library -->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+
+    <!-- Include Highmaps (if you're using maps) -->
+    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
+
+    <!-- Include Highcharts themes if using default themes -->
+    <script src="https://code.highcharts.com/themes/dark-unica.js"></script>
 </head>
 
 <body>
