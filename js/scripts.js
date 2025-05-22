@@ -135,6 +135,11 @@ function populateChartFilterOptions() {
 
     // For edit chart modal
     populateFilterOptions('editChartIndicatorGroup', indicatorGroups);
+
+    const dataSourceDetails = [...new Set(rawData.map(d => d['Data Source Detail']))].filter(Boolean);
+    populateFilterOptions('newChartDataSourceDetail', dataSourceDetails);
+    populateFilterOptions('editChartDataSourceDetail', dataSourceDetails);
+
 }
 
 // Populate options for a specific filter
@@ -1296,6 +1301,7 @@ function addNewChart() {
             indicatorGroup: chartFilters.newChartIndicatorGroup,
             indicator: chartFilters.newChartIndicator,
             dataSource: chartFilters.newChartDataSource,
+            dataSourceDetail: chartFilters.newChartDataSourceDetail,
             scope: chartFilters.newChartScope,
             year: chartFilters.newChartYear
         }
@@ -1369,6 +1375,7 @@ function updateChart() {
             indicatorGroup: chartFilters.editChartIndicatorGroup,
             indicator: chartFilters.editChartIndicator,
             dataSource: chartFilters.editChartDataSource,
+            dataSourceDetail: chartFilters.editChartDataSourceDetail,
             scope: chartFilters.editChartScope,
             year: chartFilters.editChartYear
         }

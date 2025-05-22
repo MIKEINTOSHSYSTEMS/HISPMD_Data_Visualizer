@@ -11,8 +11,8 @@ if (isset($_GET['getdashboards'])) {
     exit;
 }
 
-    //if (isset($_GET['api'])) {
-    if (isset($_GET['api']) && $_GET['api'] == '1') {
+//if (isset($_GET['api'])) {
+if (isset($_GET['api']) && $_GET['api'] == '1') {
     header('Content-Type: application/json');
     echo file_get_contents('https://hispmd.merqconsultancy.org/api/chart/public/data/hispm_data.php');
     exit;
@@ -403,6 +403,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     <div class="multi-select-display" id="newChartDataSourceTags"></div>
                 </div>
 
+                <!-- In Add Chart Modal, after Data Source filter group -->
+                <div class="filter-group">
+                    <label>Data Source Detail:</label>
+                    <div class="filter-select" onclick="toggleOptions('newChartDataSourceDetailOptions')">
+                        <span id="newChartDataSourceDetailDisplay">All</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="filter-options" id="newChartDataSourceDetailOptions">
+                        <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('newChartDataSourceDetailOptions', this.value)">
+                        <div class="filter-option">
+                            <input type="checkbox" id="newChartDataSourceDetailAll" checked onclick="selectAll('newChartDataSourceDetail', true)">
+                            <label for="newChartDataSourceDetailAll">All</label>
+                        </div>
+                    </div>
+                    <div class="multi-select-display" id="newChartDataSourceDetailTags"></div>
+                </div>
+                <!-- End Add Chart Modal addition -->
+
                 <div class="filter-group">
                     <label>Scope:</label>
                     <div class="filter-select" onclick="toggleOptions('newChartScopeOptions')">
@@ -571,6 +589,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     </div>
                     <div class="multi-select-display" id="editChartDataSourceTags"></div>
                 </div>
+
+                <!-- In Edit Chart Modal, after Data Source filter group -->
+                <div class="filter-group">
+                    <label>Data Source Detail:</label>
+                    <div class="filter-select" onclick="toggleOptions('editChartDataSourceDetailOptions')">
+                        <span id="editChartDataSourceDetailDisplay">All</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="filter-options" id="editChartDataSourceDetailOptions">
+                        <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('editChartDataSourceDetailOptions', this.value)">
+                        <div class="filter-option">
+                            <input type="checkbox" id="editChartDataSourceDetailAll" checked onclick="selectAll('editChartDataSourceDetail', true)">
+                            <label for="editChartDataSourceDetailAll">All</label>
+                        </div>
+                    </div>
+                    <div class="multi-select-display" id="editChartDataSourceDetailTags"></div>
+                </div>
+                <!-- End Edit Chart Modal addition -->
 
                 <div class="filter-group">
                     <label>Scope:</label>
