@@ -47,6 +47,68 @@ function initializeSortable() {
     });
 }
 
+const regionNameMapping = {
+    'Addis Ababa': 'Addis Ababa',
+    'Afar': 'Afar',
+    'Amhara': 'Amhara',
+    'benishangul-gumuz': 'Benishangul Gumuz',
+    'dire dawa': 'Dire Dawa',
+    'gambela': 'Gambela',
+    'harari': 'Harari',
+    'oromia': 'Oromia',
+    'sidama': 'Sidama',
+    'somali': 'Somali',
+    'south west ethiopia peoples': 'South West Ethiopia Peoples',
+    'southern nations, nationalities, and peoples': 'Southern Nations, Nationalities, and Peoples',
+    'tigray': 'Tigray',
+    'Addis Ababa City Administration': 'Addis Ababa',
+    'Afar Region': 'Afar',
+    'Amhara Region': 'Amhara',
+    'Benishangul Gumuz Region': 'Benishangul-Gumuz',
+    'Central Ethiopia region': 'Central Ethiopia',
+    'Dire Dawa City Administration': 'Dire Dawa',
+    'Gambella Region': 'Gambela',
+    'Harari Region': 'Harari',
+    'Oromia Region': 'Oromia',
+    'Sidama Region': 'Sidama',
+    'Somali Region': 'Somali',
+    'South West Ethiopia Region': 'South West Ethiopia',
+    'South Ethiopia Region': 'Southern Nations, Nationalities, and Peoples',
+    'Tigray Region': 'Tigray',
+    // Add any other regional variations you might encounter
+    'south west ethiopia': 'South West Ethiopia Peoples',
+    'snnpr': 'Southern Nations, Nationalities, and Peoples',
+    'addis ababa': 'Addis Ababa',
+    'afar': 'Afar',
+    'amhara': 'Amhara',
+    'benishangul gumuz': 'Benishangul Gumuz',
+    'dire dawa': 'Dire Dawa',
+    'gambela': 'Gambela',
+    'harari': 'Harari',
+    'oromia': 'Oromia',
+    'sidama': 'Sidama',
+    'somali': 'Somali',
+    'south west ethiopia peoples': 'South West Ethiopia Peoples',
+    'southern nations, nationalities, and peoples': 'Southern Nations, Nationalities, and Peoples',
+    'tigray': 'Tigray',
+    'addis ababa city administration': 'Addis Ababa',
+    'afar region': 'Afar',
+    'amhara region': 'Amhara',
+    'benishangul gumuz region': 'Benishangul Gumuz',
+    'central ethiopia region': 'Central Ethiopia',
+    'dire dawa city administration': 'Dire Dawa',
+    'gambella region': 'Gambela',
+    'harari region': 'Harari',
+    'oromia region': 'Oromia',
+    'sidama region': 'Sidama',
+    'somali region': 'Somali',
+    'south west ethiopia region': 'South West Ethiopia',
+    'south ethiopia region': 'Southern Nations, Nationalities, and Peoples',
+    'tigray region': 'Tigray',
+    'south west ethiopia': 'South West Ethiopia Peoples',
+    'snnpr': 'Southern Nations, Nationalities, and Peoples'
+};
+
 // Initialize chart filter options
 function initializeChartFilterOptions() {
     const filterGroups = [
@@ -63,6 +125,10 @@ function initializeChartFilterOptions() {
         const editChartGroup = 'editChart' + group.charAt(0).toUpperCase() + group.slice(1);
         chartFilters[editChartGroup] = [];
     });
+
+    // Add region filter specifically for map charts
+    chartFilters.newChartRegion = [];
+    chartFilters.editChartRegion = [];
 }
 
 // Update chart order in settings
@@ -914,36 +980,231 @@ function renderChart(chartConfig) {
                     <div style="text-align:center;">${chartConfig.title || chartData[0].indicator}</div>
                 `;
         return;
+        // In your renderChart function, update the geojson chart type case:
     } else if (chartType === 'geojson') {
-        // Demo: Ethiopia map with values by region (requires geojson)
-        fetch('https://code.highcharts.com/mapdata/countries/et/et-all.geo.json')
-            .then(r => r.json())
+        // Show loading state
+        chartElement.innerHTML = '<div class="text-center p-4">Loading map data...</div>';
+
+        // Helper function to standardize region names
+        const standardizeRegionName = (name) => {
+            if (!name) return null;
+            const lowerName = name.toLowerCase().trim();
+            return regionNameMapping[lowerName] || name;
+        };
+
+        let sonifyOnHover = false;
+
+        // First load the GeoJSON data
+        fetch('./global/ethiopia_regions.json')
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to load map data');
+                return response.json();
+            })
             .then(geojson => {
-                const data = chartData.map(d => [d.Region.toLowerCase(), Number(d[yAxisField])]);
+                // Process the chart data to aggregate by region
+                const regionDataMap = {};
+
+                chartData.forEach(item => {
+                    if (!item.Region) return;
+
+                    const region = standardizeRegionName(item.Region);
+                    if (!region) return;
+
+                    const value = parseFloat(item[yAxisField]) || 0;
+
+                    if (!regionDataMap[region]) {
+                        regionDataMap[region] = {
+                            sum: 0,
+                            count: 0,
+                            dataPoints: []
+                        };
+                    }
+
+                    regionDataMap[region].sum += value;
+                    regionDataMap[region].count++;
+                    regionDataMap[region].dataPoints.push(item);
+                });
+
+                // Prepare the data for Highmaps
+                const mapSeriesData = [];
+                const allValues = [];
+
+                Object.keys(regionDataMap).forEach(region => {
+                    const avgValue = regionDataMap[region].sum / regionDataMap[region].count;
+                    allValues.push(avgValue);
+
+                    // Find the matching feature in GeoJSON
+                    const feature = geojson.features.find(f =>
+                        standardizeRegionName(f.properties.shapeName) === region
+                    );
+
+                    if (feature) {
+                        mapSeriesData.push({
+                            'hc-key': feature.properties.pcode.toLowerCase(),
+                            'name': region,
+                            'value': avgValue,
+                            'dataPoints': regionDataMap[region].dataPoints
+                        });
+                    }
+                });
+
+                // Calculate min and max for color axis
+                const minValue = Math.min(...allValues);
+                const maxValue = Math.max(...allValues);
+
+                // Create the map chart with sonification
                 Highcharts.mapChart(chartElement, {
                     chart: {
                         map: geojson,
-                        height: chartConfig.height || 400
+                        height: chartConfig.height || 500,
+                        backgroundColor: '#f8f9fa'
                     },
                     title: {
-                        text: chartConfig.title || 'Geo Map'
+                        text: chartConfig.title || 'Regional Data Visualization'
+                    },
+                    subtitle: {
+                        text: 'Click a map area to start sonifying as you interact with the map',
+                        align: 'left'
+                    },
+                    sonification: {
+                        showTooltip: false
+                    },
+                    mapNavigation: {
+                        enabled: true,
+                        buttonOptions: {
+                            verticalAlign: 'bottom'
+                        }
+                    },
+                    colorAxis: {
+                        min: minValue,
+                        max: maxValue,
+                        type: 'logarithmic',
+                        stops: [
+                            [0, '#0B4C63'],
+                            [0.5, '#7350BB'],
+                            [0.7, '#3CD391'],
+                            [0.9, '#4AA0FF']
+                        ],
+                        marker: {
+                            color: '#343'
+                        }
+                    },
+                    legend: {
+                        title: {
+                            text: yAxisField
+                        }
+                    },
+                    tooltip: {
+                        useHTML: true,
+                        formatter: function () {
+                            const regionName = this.point.name || this.point['hc-key'];
+                            const value = this.point.value.toFixed(2);
+                            let tooltip = `<div style="min-width:250px;padding:5px">`;
+                            tooltip += `<b>${regionName}</b><br>`;
+                            tooltip += `<b>Average ${yAxisField}:</b> ${value}<br><br>`;
+
+                            if (this.point.dataPoints && this.point.dataPoints.length > 0) {
+                                tooltip += `<b>Data Points:</b><br>`;
+                                this.point.dataPoints.slice(0, 5).forEach(dp => {
+                                    tooltip += `• ${dp.indicator}: ${dp[yAxisField]}<br>`;
+                                });
+                                if (this.point.dataPoints.length > 5) {
+                                    tooltip += `...and ${this.point.dataPoints.length - 5} more`;
+                                }
+                            }
+
+                            tooltip += `</div>`;
+                            return tooltip;
+                        }
                     },
                     series: [{
-                        data: data,
-                        mapData: geojson,
-                        joinBy: ['name', 0],
                         name: yAxisField,
+                        sonification: {
+                            tracks: [{
+                                // First play a note to indicate new map area
+                                instrument: 'vibraphone',
+                                mapping: {
+                                    pitch: 'c7',
+                                    volume: 0.3
+                                }
+                            }, {
+                                mapping: {
+                                    // Array of notes to play
+                                    pitch: Array(25).fill('g2'),
+                                    gapBetweenNotes: {
+                                        mapTo: '-value', // Smaller value = bigger gaps
+                                        min: 90,
+                                        max: 1000,
+                                        mapFunction: 'logarithmic'
+                                    },
+                                    pan: 0,
+                                    noteDuration: 500,
+                                    playDelay: 150 // Make space for initial notification
+                                }
+                            }, {
+                                // Speak the name after a while
+                                type: 'speech',
+                                language: 'en-US',
+                                mapping: {
+                                    text: '{point.name}',
+                                    volume: 0.4,
+                                    rate: 1.5,
+                                    playDelay: 1500
+                                }
+                            }]
+                        },
+                        accessibility: {
+                            point: {
+                                valueDescriptionFormat: '{xDescription}, {point.value}'
+                            }
+                        },
+                        events: {
+                            mouseOut: function () {
+                                // Cancel sonification when mousing out of point
+                                this.chart.sonification.cancel();
+                            }
+                        },
+                        point: {
+                            events: {
+                                click: function () {
+                                    if (!sonifyOnHover) {
+                                        this.sonify();
+                                    } else {
+                                        this.series.chart.sonification.cancel();
+                                    }
+                                    sonifyOnHover = !sonifyOnHover;
+                                },
+                                mouseOver: function () {
+                                    if (sonifyOnHover) {
+                                        this.sonify();
+                                    }
+                                }
+                            }
+                        },
+                        cursor: 'pointer',
+                        borderColor: '#4A5A4A',
+                        dataLabels: {
+                            enabled: true,
+                            format: '{point.name}'
+                        },
+                        joinBy: ['hc-key', 'hc-key'],
                         states: {
                             hover: {
                                 color: '#BADA55'
                             }
                         },
-                        dataLabels: {
-                            enabled: true,
-                            format: '{point.name}'
-                        }
+                        data: mapSeriesData
                     }]
                 });
+            })
+            .catch(error => {
+                console.error('Error loading map data:', error);
+                chartElement.innerHTML = `
+                <div class="alert alert-danger">
+                    Failed to load map: ${error.message}<br>
+                    <small>Please check the GeoJSON file path and format</small>
+                </div>
+            `;
             });
         return;
     } else {
@@ -1347,6 +1608,7 @@ function addNewChart() {
             dataSource: chartFilters.newChartDataSource,
             dataSourceDetail: chartFilters.newChartDataSourceDetail,
             scope: chartFilters.newChartScope,
+            region: chartFilters.newChartRegion, 
             year: chartFilters.newChartYear
         }
     };
@@ -1416,12 +1678,13 @@ function updateChart() {
         showLabels: showLabels,
         showTooltip: showTooltip,
         filters: {
-            indicatorGroup: chartFilters.editChartIndicatorGroup,
-            indicator: chartFilters.editChartIndicator,
-            dataSource: chartFilters.editChartDataSource,
-            dataSourceDetail: chartFilters.editChartDataSourceDetail,
-            scope: chartFilters.editChartScope,
-            year: chartFilters.editChartYear
+            indicatorGroup: chartFilters.newChartIndicatorGroup,
+            indicator: chartFilters.newChartIndicator,
+            dataSource: chartFilters.newChartDataSource,
+            dataSourceDetail: chartFilters.newChartDataSourceDetail,
+            scope: chartFilters.newChartScope,
+            region: chartFilters.newChartRegion,
+            year: chartFilters.newChartYear
         }
     };
 

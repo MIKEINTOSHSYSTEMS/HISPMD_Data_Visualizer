@@ -69,6 +69,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <script src="js/xlsx.full.min.js"></script>
     <script src="js/Sortable.min.js"></script>
     <script src="js/bootstrap.bundle.min.js"></script>
+
+    <!-- In your head section, replace or add these scripts -->
+    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/sonification.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/data.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/accessibility.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/map.js"></script>
 </head>
 
 <body>
@@ -326,7 +334,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     <option value="2category">2-Category</option>
                     <option value="combination">Combination</option>
                     <option value="pivot">Pivot</option>
-                    <option value="geojson">Geo Map</option>
+                    <option value="geojson">Geo Map (Choropleth)</option>
                 </select>
             </div>
             <div class="form-group">
@@ -513,7 +521,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     <option value="2category">2-Category</option>
                     <option value="combination">Combination</option>
                     <option value="pivot">Pivot</option>
-                    <option value="geojson">Geo Map</option>
+                    <option value="geojson">Geo Map (Choropleth)</option>
                 </select>
             </div>
             <div class="form-group">
