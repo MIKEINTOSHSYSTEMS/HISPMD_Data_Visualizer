@@ -14,7 +14,8 @@ if (isset($_GET['getdashboards'])) {
 //if (isset($_GET['api'])) {
 if (isset($_GET['api']) && $_GET['api'] == '1') {
     header('Content-Type: application/json');
-    echo file_get_contents('https://hispmd.merqconsultancy.org/api/chart/public/data/hispm_data.php');
+    echo file_get_contents('./data/offline_hispmd_data.json');
+    //echo file_get_contents('https://hispmd.merqconsultancy.org/api/chart/public/data/hispm_data.php');
     exit;
 }
 
@@ -80,11 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <!-- Include Highcharts library -->
     <script src="https://code.highcharts.com/highcharts.js"></script>
 
-    <!-- Include Highmaps (if you're using maps) -->
+    <!-- Include Highmaps (if you're using maps) 
     <script src="https://code.highcharts.com/maps/highmaps.js"></script>
-
-    <!-- Include Highcharts themes if using default themes -->
+-->
+    <!-- Include Highcharts themes if using default themes
     <script src="https://code.highcharts.com/themes/dark-unica.js"></script>
+     -->
 </head>
 
 <body>

@@ -984,14 +984,14 @@ function renderChart(chartConfig) {
     } else if (chartType === 'geojson') {
         // Show loading state
         chartElement.innerHTML = '<div class="text-center p-4">Loading map data...</div>';
-
+    
         // Helper function to standardize region names
         const standardizeRegionName = (name) => {
             if (!name) return null;
             const lowerName = name.toLowerCase().trim();
             return regionNameMapping[lowerName] || name;
         };
-
+    
         // First load the GeoJSON data
         fetch('./global/ethiopia_regions.json')
             .then(response => {
@@ -1001,15 +1001,15 @@ function renderChart(chartConfig) {
             .then(geojson => {
                 // Process the chart data to aggregate by region
                 const regionDataMap = {};
-
+    
                 chartData.forEach(item => {
                     if (!item.Region) return;
-
+    
                     const region = standardizeRegionName(item.Region);
                     if (!region) return;
-
+    
                     const value = parseFloat(item[yAxisField]) || 0;
-
+    
                     if (!regionDataMap[region]) {
                         regionDataMap[region] = {
                             sum: 0,
@@ -1017,25 +1017,25 @@ function renderChart(chartConfig) {
                             dataPoints: []
                         };
                     }
-
+    
                     regionDataMap[region].sum += value;
                     regionDataMap[region].count++;
                     regionDataMap[region].dataPoints.push(item);
                 });
-
+    
                 // Prepare the data for Highmaps
                 const mapSeriesData = [];
                 const allValues = [];
-
+    
                 Object.keys(regionDataMap).forEach(region => {
                     const avgValue = regionDataMap[region].sum / regionDataMap[region].count;
                     allValues.push(avgValue);
-
+    
                     // Find the matching feature in GeoJSON
                     const feature = geojson.features.find(f =>
                         standardizeRegionName(f.properties.shapeName) === region
                     );
-
+    
                     if (feature) {
                         mapSeriesData.push({
                             'hc-key': feature.properties.pcode.toLowerCase(),
@@ -1045,11 +1045,11 @@ function renderChart(chartConfig) {
                         });
                     }
                 });
-
+    
                 // Calculate min and max for color axis
                 const minValue = Math.min(...allValues);
                 const maxValue = Math.max(...allValues);
-
+    
                 // Color palettes
                 const colorPalettes = {
                     "Viridis": ['#440154', '#482878', '#3e4989', '#31688e', '#26828e',
@@ -1069,7 +1069,7 @@ function renderChart(chartConfig) {
                     "Turbo": ['#30123b', '#4145ab', '#4675ed', '#39a2fc', '#1bcfd4',
                         '#24eca6', '#61fc6c', '#a4fc3b', '#d1e834', '#faba39']
                 };
-
+    
                 // Theme options
                 const themeOptions = {
                     "Default": null,
@@ -1079,24 +1079,24 @@ function renderChart(chartConfig) {
                     "Hand Drawn": Highcharts.themes && Highcharts.themes.handdrawn,
                     "Chalk": Highcharts.themes && Highcharts.themes.chalk
                 };
-
+    
                 // Create the map chart
                 const createMap = (paletteName = "Viridis", themeName = "Default") => {
                     // Clear previous chart if exists
                     if (chartElement.highcharts) {
                         chartElement.highcharts.destroy();
                     }
-
+    
                     // Clear previous controls if they exist
                     const existingControls = chartContainer.querySelector('.map-controls');
                     if (existingControls) {
                         existingControls.remove();
                     }
-
+    
                     // Create controls container
                     const controlsContainer = document.createElement('div');
                     controlsContainer.className = 'map-controls';
-
+    
                     // Create palette selector
                     const paletteSelect = document.createElement('select');
                     paletteSelect.className = 'form-control';
@@ -1108,7 +1108,7 @@ function renderChart(chartConfig) {
                         option.selected = palette === paletteName;
                         paletteSelect.appendChild(option);
                     });
-
+    
                     // Create theme selector
                     const themeSelect = document.createElement('select');
                     themeSelect.className = 'form-control';
@@ -1120,22 +1120,30 @@ function renderChart(chartConfig) {
                         option.selected = theme === themeName;
                         themeSelect.appendChild(option);
                     });
-
+    
                     controlsContainer.appendChild(paletteSelect);
                     controlsContainer.appendChild(themeSelect);
-
+    
                     // Insert controls before the chart container
                     chartContainer.insertBefore(controlsContainer, chartElement);
-
+    
                     // Apply selected palette
                     const selectedPalette = colorPalettes[paletteName] || colorPalettes["Viridis"];
-
+    
                     // Create chart options
                     const chartOptions = {
                         chart: {
                             map: geojson,
                             height: chartConfig.height || 500,
-                            backgroundColor: 'transparent'
+                            backgroundColor: 'transparent',
+                            events: {
+                                load: function() {
+                                    const chart = this;
+                                    window.addEventListener('resize', function() {
+                                        chart.reflow();
+                                    });
+                                }
+                            }
                         },
                         title: {
                             text: chartConfig.title || 'Regional Data Visualization',
@@ -1194,6 +1202,7 @@ function renderChart(chartConfig) {
                             layout: 'vertical',
                             align: 'right',
                             verticalAlign: 'middle',
+                                                    verticalAlign: 'middle',
                             floating: true,
                             itemStyle: {
                                 color: '#333'
@@ -1210,7 +1219,7 @@ function renderChart(chartConfig) {
                                 let tooltip = `<div style="min-width:250px;padding:5px">`;
                                 tooltip += `<b>${regionName}</b><br>`;
                                 tooltip += `<b>Average ${yAxisField}:</b> ${value}<br><br>`;
-
+    
                                 if (this.point.dataPoints && this.point.dataPoints.length > 0) {
                                     tooltip += `<b>Data Points:</b><br>`;
                                     this.point.dataPoints.slice(0, 5).forEach(dp => {
@@ -1220,7 +1229,7 @@ function renderChart(chartConfig) {
                                         tooltip += `...and ${this.point.dataPoints.length - 5} more`;
                                     }
                                 }
-
+    
                                 tooltip += `</div>`;
                                 return tooltip;
                             },
@@ -1252,14 +1261,15 @@ function renderChart(chartConfig) {
                                     fontWeight: 'bold'
                                 }
                             },
-                            borderWidth: 1,
-                            borderColor: '#fff'
+                            borderWidth: 2,
+                            borderColor: '#000',
+                            nullColor: '#e0e0e0'  // Color for regions with no data
                         }],
                         credits: {
                             enabled: false
                         }
                     };
-
+    
                     // Apply theme if selected and available
                     if (themeName !== "Default" && themeOptions[themeName]) {
                         Highcharts.setOptions(themeOptions[themeName]);
@@ -1279,10 +1289,10 @@ function renderChart(chartConfig) {
                             }
                         });
                     }
-
+    
                     // Create the chart
                     const chart = Highcharts.mapChart(chartElement, chartOptions);
-
+    
                     // Add event listeners for controls
                     paletteSelect.addEventListener('change', function () {
                         const newPalette = colorPalettes[this.value] || colorPalettes["Viridis"];
@@ -1292,12 +1302,12 @@ function renderChart(chartConfig) {
                             }
                         });
                     });
-
+    
                     themeSelect.addEventListener('change', function () {
                         createMap(paletteSelect.value, this.value);
                     });
                 };
-
+    
                 // Initialize with default palette and theme
                 createMap("Viridis", "Default");
             })
