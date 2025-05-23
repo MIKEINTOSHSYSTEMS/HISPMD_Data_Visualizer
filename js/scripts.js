@@ -705,8 +705,10 @@ function resetDashboard() {
     const dashboardContainer = document.getElementById('dashboardContainer');
     if (dashboardContainer) {
         dashboardContainer.innerHTML = `
-            <div class="empty-state">
-                <i class="fa fa-bar-chart" aria-hidden="true"></i>
+        <div class="empty-state" align="center">
+            <p></p>
+            <p></p>
+                <i class="fa fa-bar-chart fa-5x" aria-hidden="true"></i>
                 <h4>No charts added yet</h4>
                 <p>Click "Add Chart" to start building your dashboard</p>
                 <button class="btn btn-primary" onclick="openAddChartModal()">

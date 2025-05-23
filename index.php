@@ -337,10 +337,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <button class="btn btn-outline-secondary mobile-menu-toggle" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h1 class="h5 mb-0">HISPMD - Dashboard Builder</h1>
-                <button class="btn btn-primary btn-sm" onclick="openAddChartModal()">
-                    <i class="fas fa-plus"></i>
-                </button>
+                <i class="fas fa-chart-line me-2"></i>
+                <h1 class="h5 mb-0">HISPMD</h1>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary btn-sm" onclick="openAddChartModal()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success" title="Save Dashboard" onclick="openSaveDashboardModal()">
+                        <i class="fas fa-save"></i>
+                    </button>
+                    <button class="btn btn-sm btn-secondary" title="Load Dashboard" onclick="openLoadDashboardModal()">
+                        <i class="fas fa-folder-open"></i>
+                    </button>
+                    <button class="btn btn-sm btn-light" title="Reset Dashboard" onclick="resetDashboard()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+
+
             </div>
         </div>
     </header>
@@ -350,22 +365,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <main class="main-content">
         <!-- Header -->
         <header class="sticky-top bg-body border-bottom">
-            <div class="container-fluid py-2">
-                <div class="d-flex align-items-center">
+            <!--
+        <div class="container-fluid d-flex justify-content-between align-items-center py-2">
+                <h1 class="h4 mb-0">HISPMD - Dashboard Builder</h1>
+                <button class="btn btn-primary" onclick="openAddChartModal()">
+                    <i class="fas fa-plus"></i> New Chart
+                </button>
 
-                    <!--
-                                    <button class="btn btn-outline-secondary me-3 d-lg-none" onclick="toggleSidebar()">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <div class="flex-grow-1">
-                        <h1 class="h4 mb-0">HISPMD</h1>
-                        <p class="text-muted mb-0">Interactive Analytics Platform</p>
-                    <input type="file" id="fileInput" class="form-control w-auto">
-                    </div>
 -->
-
-                </div>
-            </div>
             <!--
             <div class="container-fluid py-2">
                 <div class="d-flex align-items-center">
@@ -403,7 +410,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     </br>
 
     <div class="dashboard-footer">
-        
+
         &copy; <?= date('Y') ?> HISPMD Advanced Dashboard | Powered by MERQ Consultancy
     </div>
 

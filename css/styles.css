@@ -400,7 +400,7 @@ background: #0b7593; /* #f0f0f0;*/
     --success: #28a745;
     --background: #ffffff;
     --surface: #f8f9fa;
-    --text: #212529;
+    --text: #00479e;
     --border: #dee2e6;
     --sidebar-width: 280px;
     --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -412,7 +412,7 @@ background: #0b7593; /* #f0f0f0;*/
     --success: #218838;
     --background: #1a1a1a;
     --surface: #2d2d2d;
-    --text: #e9ecef;
+    --text: #3079ee;
     --border: #495057;
 }
 
