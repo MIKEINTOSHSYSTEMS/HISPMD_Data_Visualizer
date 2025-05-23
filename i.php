@@ -1,22 +1,35 @@
 <?php
-// index.php - Advanced Dynamic Data Visualization Dashboard
+// index.php - Advanced Dynamic Data Visualization Dashboard with Enhanced Features
+// Serve as both HTML and API endpoint
 if (isset($_GET['getdashboards'])) {
     header('Content-Type: application/json');
-    echo file_exists('hisdashboards.json') ? file_get_contents('hisdashboards.json') : json_encode([]);
+    if (file_exists('hisdashboards.json')) {
+        readfile('hisdashboards.json');
+    } else {
+        echo json_encode([]);
+    }
     exit;
 }
 
+//if (isset($_GET['api'])) {
 if (isset($_GET['api']) && $_GET['api'] == '1') {
     header('Content-Type: application/json');
     echo file_get_contents('./data/offline_hispmd_data.json');
+    //echo file_get_contents('https://hispmd.merqconsultancy.org/api/chart/public/data/hispm_data.php');
     exit;
 }
 
+// Handle dashboard save/load
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'save_dashboard') {
         $dashboardName = $_POST['dashboard_name'] ?? 'dashboard_' . date('Ymd_His');
         $settings = json_decode($_POST['settings'], true);
-        $dashboards = file_exists('hisdashboards.json') ? json_decode(file_get_contents('hisdashboards.json'), true) : [];
+        $dashboards = [];
+
+        if (file_exists('hisdashboards.json')) {
+            $dashboards = json_decode(file_get_contents('hisdashboards.json'), true);
+        }
+
         $dashboards[$dashboardName] = $settings;
         file_put_contents('hisdashboards.json', json_encode($dashboards, JSON_PRETTY_PRINT));
         echo json_encode(['status' => 'success', 'message' => 'Dashboard saved successfully']);
@@ -25,41 +38,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="light">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HISPMD Advanced Dashboard</title>
-
-    <!-- Stylesheets -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/all.min.css">
-    <link rel="stylesheet" href="css/dashboards.css">
-
-
-    <!--
+    <title>HISPMD Data Visualization Dashboard Builder</title>
     <link rel="stylesheet" href="css/dashboards.css">
     <link rel="stylesheet" href="css/all.min.css">
     <link rel="stylesheet" href="css/bootstrap.min.css">
-    -->
     <link rel="stylesheet" href="css/styles.css">
+    <style>
 
-
-
-    <!-- Highcharts -->
-    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
-    <script src="https://code.highcharts.com/maps/modules/sonification.js"></script>
-    <script src="https://code.highcharts.com/maps/modules/data.js"></script>
-    <script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
-    <script src="https://code.highcharts.com/maps/modules/accessibility.js"></script>
-    <script src="https://code.highcharts.com/maps/modules/map.js"></script>
-    <!-- Include Highcharts library -->
-    <script src="https://code.highcharts.com/highcharts.js"></script>
-
-    <!-- CUSTOMS -->
+    </style>
     <script src="js/highcharts.js"></script>
     <script src="js/highcharts-more.js"></script>
     <script src="js/exporting.js"></script>
@@ -81,6 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <script src="js/Sortable.min.js"></script>
     <script src="js/bootstrap.bundle.min.js"></script>
 
+    <!-- In your head section, replace or add these scripts -->
+    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/sonification.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/data.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/accessibility.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/map.js"></script>
+    <!-- Include Highcharts library -->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
 
     <!-- Include Highmaps (if you're using maps) 
     <script src="https://code.highcharts.com/maps/highmaps.js"></script>
@@ -91,320 +90,232 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 </head>
 
 <body>
-    <div class="mobile-header d-lg-none">
-        <button class="btn btn-outline-secondary" onclick="toggleSidebar()">
-            <i class="fas fa-bars"></i>
+    <div class="dashboard-header">
+        <h1>HISPMD Data Visualization & Dashboard Builder</h1>
+        <p>Create, customize, and save interactive dashboards with multiple visualizations</p>
+    </div>
+
+    <div class="dashboard-actions">
+        <button class="btn btn-primary" onclick="openAddChartModal()">
+            <i class="fas fa-plus"></i> Add Chart
         </button>
-        <h5 class="mb-0">Dashboard</h5>
+        <button class="btn btn-success" onclick="openSaveDashboardModal()">
+            <i class="fas fa-save"></i> Save Dashboard
+        </button>
+        <button class="btn btn-secondary" onclick="openLoadDashboardModal()">
+            <i class="fas fa-folder-open"></i> Load Dashboard
+        </button>
+        <button class="btn btn-light" onclick="resetDashboard()">
+            <i class="fas fa-sync-alt"></i> Reset
+        </button>
+        <div class="filter-group" style="margin-left: auto;">
+            <label>Upload Data:</label>
+            <input type="file" id="fileInput" class="form-control" accept=".csv,.xlsx,.json,.geojson" style="width: auto;">
+        </div>
+    </div>
+
+    <div class="dashboard-controls" id="controls">
+        <div class="filter-group">
+            <label>Indicator Group:</label>
+            <div class="filter-select" onclick="toggleOptions('indicatorGroupOptions')">
+                <span id="indicatorGroupDisplay">All</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-options" id="indicatorGroupOptions">
+                <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('indicatorGroupOptions', this.value)">
+                <div class="filter-option">
+                    <input type="checkbox" id="indicatorGroupAll" checked onclick="selectAll('indicatorGroup')">
+                    <label for="indicatorGroupAll">All</label>
+                </div>
+                <!-- Options will be populated by JavaScript -->
+            </div>
+            <div class="multi-select-display" id="indicatorGroupTags"></div>
+        </div>
+
+        <div class="filter-group">
+            <label>Indicator:</label>
+            <div class="filter-select" onclick="toggleOptions('indicatorOptions')">
+                <span id="indicatorDisplay">All</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-options" id="indicatorOptions">
+                <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('indicatorOptions', this.value)">
+                <div class="filter-option">
+                    <input type="checkbox" id="indicatorAll" checked onclick="selectAll('indicator')">
+                    <label for="indicatorAll">All</label>
+                </div>
+                <!-- Options will be populated by JavaScript -->
+            </div>
+            <div class="multi-select-display" id="indicatorTags"></div>
+        </div>
+
+        <div class="filter-group">
+            <label>Data Source:</label>
+            <div class="filter-select" onclick="toggleOptions('dataSourceOptions')">
+                <span id="dataSourceDisplay">All</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-options" id="dataSourceOptions">
+                <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('dataSourceOptions', this.value)">
+                <div class="filter-option">
+                    <input type="checkbox" id="dataSourceAll" checked onclick="selectAll('dataSource')">
+                    <label for="dataSourceAll">All</label>
+                </div>
+                <!-- Options will be populated by JavaScript -->
+            </div>
+            <div class="multi-select-display" id="dataSourceTags"></div>
+        </div>
+
+        <div class="filter-group">
+            <label>Scope:</label>
+            <div class="filter-select" onclick="toggleOptions('scopeOptions')">
+                <span id="scopeDisplay">All</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-options" id="scopeOptions">
+                <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('scopeOptions', this.value)">
+                <div class="filter-option">
+                    <input type="checkbox" id="scopeAll" checked onclick="selectAll('scope')">
+                    <label for="scopeAll">All</label>
+                </div>
+                <!-- Options will be populated by JavaScript -->
+            </div>
+            <div class="multi-select-display" id="scopeTags"></div>
+        </div>
+
+        <div class="filter-group">
+            <label>Region:</label>
+            <div class="filter-select" onclick="toggleOptions('regionOptions')">
+                <span id="regionDisplay">All</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-options" id="regionOptions">
+                <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('regionOptions', this.value)">
+                <div class="filter-option">
+                    <input type="checkbox" id="regionAll" checked onclick="selectAll('region')">
+                    <label for="regionAll">All</label>
+                </div>
+                <!-- Options will be populated by JavaScript -->
+            </div>
+            <div class="multi-select-display" id="regionTags"></div>
+        </div>
+
+        <div class="filter-group">
+            <label>Administration Unit:</label>
+            <div class="filter-select" onclick="toggleOptions('adminUnitOptions')">
+                <span id="adminUnitDisplay">All</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-options" id="adminUnitOptions">
+                <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('adminUnitOptions', this.value)">
+                <div class="filter-option">
+                    <input type="checkbox" id="adminUnitAll" checked onclick="selectAll('adminUnit')">
+                    <label for="adminUnitAll">All</label>
+                </div>
+                <!-- Options will be populated by JavaScript -->
+            </div>
+            <div class="multi-select-display" id="adminUnitTags"></div>
+        </div>
+
+        <div class="filter-group">
+            <label>Facility Type:</label>
+            <div class="filter-select" onclick="toggleOptions('facilityTypeOptions')">
+                <span id="facilityTypeDisplay">All</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-options" id="facilityTypeOptions">
+                <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('facilityTypeOptions', this.value)">
+                <div class="filter-option">
+                    <input type="checkbox" id="facilityTypeAll" checked onclick="selectAll('facilityType')">
+                    <label for="facilityTypeAll">All</label>
+                </div>
+                <!-- Options will be populated by JavaScript -->
+            </div>
+            <div class="multi-select-display" id="facilityTypeTags"></div>
+        </div>
+
+        <div class="filter-group">
+            <label>Data Source Detail:</label>
+            <div class="filter-select" onclick="toggleOptions('dataSourceDetailOptions')">
+                <span id="dataSourceDetailDisplay">All</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-options" id="dataSourceDetailOptions">
+                <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('dataSourceDetailOptions', this.value)">
+                <div class="filter-option">
+                    <input type="checkbox" id="dataSourceDetailAll" checked onclick="selectAll('dataSourceDetail')">
+                    <label for="dataSourceDetailAll">All</label>
+                </div>
+                <!-- Options will be populated by JavaScript -->
+            </div>
+            <div class="multi-select-display" id="dataSourceDetailTags"></div>
+        </div>
+
+        <div class="filter-group">
+            <label>Period Type:</label>
+            <div class="filter-select" onclick="toggleOptions('periodTypeOptions')">
+                <span id="periodTypeDisplay">All</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-options" id="periodTypeOptions">
+                <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('periodTypeOptions', this.value)">
+                <div class="filter-option">
+                    <input type="checkbox" id="periodTypeAll" checked onclick="selectAll('periodType')">
+                    <label for="periodTypeAll">All</label>
+                </div>
+                <!-- Options will be populated by JavaScript -->
+            </div>
+            <div class="multi-select-display" id="periodTypeTags"></div>
+        </div>
+
+        <!-- Start of Dashboard Year Filter -->
+        <div class="filter-group">
+            <label>Year:</label>
+            <div class="filter-select" onclick="toggleOptions('yearOptions')">
+                <span id="yearDisplay">All</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-options" id="yearOptions">
+                <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('yearOptions', this.value)">
+                <div class="filter-option">
+                    <input type="checkbox" id="yearAll" checked onclick="selectAll('year')">
+                    <label for="periodTypeAll">All</label>
+                </div>
+                <!-- Options will be populated by JavaScript -->
+            </div>
+            <div class="multi-select-display" id="yearTags"></div>
+        </div>
+        <!-- End of Dashboard Year Filter -->
 
         <!--
-        <div class="mobile-actions">
-            <button class="btn btn-primary btn-sm" onclick="openAddChartModal()">
-                <i class="fas fa-plus"></i>
-            </button>
+        <div class="filter-group">
+            <label>X-Axis:</label>
+            <select id="xAxisSelect" class="form-control">
+                <option value="Year">Year</option>
+                <option value="indicator">Indicator</option>
+                <option value="Region">Region</option>
+                <option value="Facility Type">Facility Type</option>
+                <option value="Data Source">Data Source</option>
+                <option value="Indicator Group">Indicator Group</option>
+                <option value="Data Source Detail">Data Source Detail</option>
+                <option value="Administration Unit">Administration Unit</option>
+                <option value="Scope">Scope</option>
+                <option value="Period Type">Period Type</option>
+            </select>
         </div>
+
 -->
     </div>
-    <!-- Theme Toggle -->
-    <div class="theme-toggle">
-        <button class="btn btn-primary rounded-circle p-2" onclick="toggleTheme()">
-            <i class="fas fa-moon"></i>
-        </button>
+    <div class="dashboard-container" id="dashboardContainer">
+        <!-- Charts will be added here dynamically -->
     </div>
 
-    <!-- Sidebar -->
-    <!-- Sidebar Navigation -->
-    <nav class="sidebar">
-        <div class="sidebar-header p-3 d-flex flex-column">
-            <!-- Header with Collapse Toggle -->
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0">
-                    <i class="fas fa-chart-line me-2"></i>HISPMD
-                </h4>
-                <button class="btn btn-sm btn-outline-secondary toggle-sidebar" onclick="toggleSidebar()">
-                    <i class="fas fa-bars"></i>
-                </button>
-            </div>
 
-            <!-- Quick Actions Toolbar -->
-            <div class="quick-actions mb-4">
-                <div class="btn-group w-100 mb-2">
-                    <button class="btn btn-primary flex-grow-1 text-start" title="Add Chart" onclick="openAddChartModal()">
-                        <i class="fas fa-plus me-2"></i>New Chart
-                    </button>
-                </div>
-
-                <div class="btn-toolbar justify-content-between">
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-success" title="Save Dashboard" onclick="openSaveDashboardModal()">
-                            <i class="fas fa-save"></i>
-                        </button>
-                        <button class="btn btn-sm btn-secondary" title="Load Dashboard" onclick="openLoadDashboardModal()">
-                            <i class="fas fa-folder-open"></i>
-                        </button>
-                    </div>
-                    <button class="btn btn-sm btn-light" title="Reset Dashboard" onclick="resetDashboard()">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Filter Search Box -->
-            <div class="search-box mb-3">
-                <div class="input-group">
-                    <span class="input-group-text">
-                        <i class="fas fa-search"></i>
-                    </span>
-                    <input type="text" class="form-control" id="filterSearch" placeholder="Search filters...">
-                </div>
-            </div>
-
-            <!-- Filter Accordion -->
-            <div class="filter-accordion accordion" id="filterAccordion">
-                <!-- Indicator Group Filter -->
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#filterIndicatorGroup">
-                            <i class="fas fa-layer-group me-2"></i>Indicator Group
-                        </button>
-                    </h2>
-                    <div id="filterIndicatorGroup" class="accordion-collapse collapse" data-bs-parent="#filterAccordion">
-                        <div class="accordion-body p-2">
-                            <div class="filter-control">
-                                <div class="filter-select" onclick="toggleOptions('indicatorGroupOptions')">
-                                    <span id="indicatorGroupDisplay">All</span>
-                                    <i class="fas fa-chevron-down"></i>
-                                </div>
-                                <div class="filter-options" id="indicatorGroupOptions">
-                                    <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('indicatorGroupOptions', this.value)">
-                                    <div class="filter-option">
-                                        <input type="checkbox" id="indicatorGroupAll" checked onclick="selectAll('indicatorGroup')">
-                                        <label for="indicatorGroupAll">All</label>
-                                    </div>
-                                    <!-- Options populated by JavaScript -->
-                                </div>
-                                <div class="selected-tags" id="indicatorGroupTags"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Indicator Filter -->
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#filterIndicator">
-                            <i class="fas fa-chart-bar me-2"></i>Indicator
-                        </button>
-                    </h2>
-                    <div id="filterIndicator" class="accordion-collapse collapse" data-bs-parent="#filterAccordion">
-                        <div class="accordion-body p-2">
-                            <div class="filter-control">
-                                <div class="filter-select" onclick="toggleOptions('indicatorOptions')">
-                                    <span id="indicatorDisplay">All</span>
-                                    <i class="fas fa-chevron-down"></i>
-                                </div>
-                                <div class="filter-options" id="indicatorOptions">
-                                    <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('indicatorOptions', this.value)">
-                                    <div class="filter-option">
-                                        <input type="checkbox" id="indicatorAll" checked onclick="selectAll('indicator')">
-                                        <label for="indicatorAll">All</label>
-                                    </div>
-                                    <!-- Options populated by JavaScript -->
-                                </div>
-                                <div class="selected-tags" id="indicatorTags"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Data Source Filter -->
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#filterDataSource">
-                            <i class="fas fa-database me-2"></i>Data Source
-                        </button>
-                    </h2>
-                    <div id="filterDataSource" class="accordion-collapse collapse" data-bs-parent="#filterAccordion">
-                        <div class="accordion-body p-2">
-                            <div class="filter-control">
-                                <div class="filter-select" onclick="toggleOptions('dataSourceOptions')">
-                                    <span id="dataSourceDisplay">All</span>
-                                    <i class="fas fa-chevron-down"></i>
-                                </div>
-                                <div class="filter-options" id="dataSourceOptions">
-                                    <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('dataSourceOptions', this.value)">
-                                    <div class="filter-option">
-                                        <input type="checkbox" id="dataSourceAll" checked onclick="selectAll('dataSource')">
-                                        <label for="dataSourceAll">All</label>
-                                    </div>
-                                    <!-- Options populated by JavaScript -->
-                                </div>
-                                <div class="selected-tags" id="dataSourceTags"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Additional Filters (collapsed by default) -->
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#filterMoreOptions">
-                            <i class="fas fa-sliders-h me-2"></i>More Filters
-                        </button>
-                    </h2>
-                    <div id="filterMoreOptions" class="accordion-collapse collapse" data-bs-parent="#filterAccordion">
-                        <div class="accordion-body p-2">
-                            <!-- Scope Filter -->
-                            <div class="filter-group mb-3">
-                                <label class="filter-label">Scope</label>
-                                <div class="filter-control">
-                                    <div class="filter-select" onclick="toggleOptions('scopeOptions')">
-                                        <span id="scopeDisplay">All</span>
-                                        <i class="fas fa-chevron-down"></i>
-                                    </div>
-                                    <div class="filter-options" id="scopeOptions">
-                                        <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('scopeOptions', this.value)">
-                                        <div class="filter-option">
-                                            <input type="checkbox" id="scopeAll" checked onclick="selectAll('scope')">
-                                            <label for="scopeAll">All</label>
-                                        </div>
-                                        <!-- Options populated by JavaScript -->
-                                    </div>
-                                    <div class="selected-tags" id="scopeTags"></div>
-                                </div>
-                            </div>
-
-                            <!-- Region Filter -->
-                            <div class="filter-group mb-3">
-                                <label class="filter-label">Region</label>
-                                <div class="filter-control">
-                                    <div class="filter-select" onclick="toggleOptions('regionOptions')">
-                                        <span id="regionDisplay">All</span>
-                                        <i class="fas fa-chevron-down"></i>
-                                    </div>
-                                    <div class="filter-options" id="regionOptions">
-                                        <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('regionOptions', this.value)">
-                                        <div class="filter-option">
-                                            <input type="checkbox" id="regionAll" checked onclick="selectAll('region')">
-                                            <label for="regionAll">All</label>
-                                        </div>
-                                        <!-- Options populated by JavaScript -->
-                                    </div>
-                                    <div class="selected-tags" id="regionTags"></div>
-                                </div>
-                            </div>
-
-                            <!-- Year Filter -->
-                            <div class="filter-group">
-                                <label class="filter-label">Year</label>
-                                <div class="filter-control">
-                                    <div class="filter-select" onclick="toggleOptions('yearOptions')">
-                                        <span id="yearDisplay">All</span>
-                                        <i class="fas fa-chevron-down"></i>
-                                    </div>
-                                    <div class="filter-options" id="yearOptions">
-                                        <input type="text" class="filter-search" placeholder="Search..." oninput="filterOptions('yearOptions', this.value)">
-                                        <div class="filter-option">
-                                            <input type="checkbox" id="yearAll" checked onclick="selectAll('year')">
-                                            <label for="yearAll">All</label>
-                                        </div>
-                                        <!-- Options populated by JavaScript -->
-                                    </div>
-                                    <div class="selected-tags" id="yearTags"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sidebar Footer -->
-            <div class="sidebar-footer mt-auto pt-3 border-top">
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">v1.0.0</small>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleTheme()">
-                        <i class="fas fa-moon"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Mobile Header (shown only on small screens) -->
-    <header class="mobile-header d-lg-none">
-        <div class="container-fluid">
-            <div class="d-flex justify-content-between align-items-center py-2">
-                <button class="btn btn-outline-secondary mobile-menu-toggle" onclick="toggleSidebar()">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <h1 class="h5 mb-0">HISPMD - Dashboard Builder</h1>
-                <button class="btn btn-primary btn-sm" onclick="openAddChartModal()">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-        </div>
-    </header>
-
-
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Header -->
-        <header class="sticky-top bg-body border-bottom">
-            <div class="container-fluid py-2">
-                <div class="d-flex align-items-center">
-
-                    <!--
-                                    <button class="btn btn-outline-secondary me-3 d-lg-none" onclick="toggleSidebar()">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <div class="flex-grow-1">
-                        <h1 class="h4 mb-0">HISPMD</h1>
-                        <p class="text-muted mb-0">Interactive Analytics Platform</p>
-                    <input type="file" id="fileInput" class="form-control w-auto">
-                    </div>
--->
-
-                </div>
-            </div>
-            <!--
-            <div class="container-fluid py-2">
-                <div class="d-flex align-items-center">
-                    <button class="btn btn-outline-secondary me-3 d-lg-none" onclick="toggleSidebar()">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <div class="flex-grow-1">
-                        <h1 class="h4 mb-0">Advanced Data Visualization</h1>
-                        <p class="text-muted mb-0">Interactive Analytics Platform</p>
-                    </div>
-                    <input type="file" id="fileInput" class="form-control w-auto">
-                </div>
-            </div>
--->
-        </header>
-
-        <!-- Dashboard -->
-        <!-- Update your chart containers -->
-        <br>
-        <br>
-
-
-        <div class="dashboard-container" id="dashboardContainer">
-            <!-- Charts will be dynamically added here -->
-        </div>
-
-    </main>
-
-
-    <br>
-    </br>
-    <br>
-    </br>
     <br>
     </br>
 
     <div class="dashboard-footer">
-        
-        &copy; <?= date('Y') ?> HISPMD Advanced Dashboard | Powered by MERQ Consultancy
+        &copy; <?= date('Y') ?> Advanced Dashboard | Powered by Highcharts & PHP
     </div>
 
     <!-- Add Chart Modal -->
@@ -804,24 +715,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             <button class="btn btn-primary" onclick="loadSelectedDashboard()" style="margin-top: 1em;">Load Selected</button>
         </div>
     </div>
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
 
-    <script>
-    </script>
+    <script src="./js/scripts.js">
+        // Ensure modals can be closed
+        document.addEventListener('DOMContentLoaded', function() {
+            // Close modals when clicking the X
+            document.querySelectorAll('.close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', function() {
+                    this.closest('.modal').style.display = 'none';
+                });
+            });
 
-    <!-- JavaScript code for chart handling -->
-    <script src="js/scripts.js"></script>
-    <!-- JavaScript code for custom interactive app scripts handling -->
-    <script src="js/app.js"></script>
-    <script>
-        // Initialize the dashboard application
-        const dashboardApp = new DashboardApp();
-
-        // Expose necessary methods to global scope
-        window.toggleTheme = () => dashboardApp.toggleTheme();
-        window.toggleSidebar = () => dashboardApp.toggleSidebar();
+            // Make sure add chart button works
+            document.querySelector('.dashboard-actions .btn-primary').addEventListener('click', openAddChartModal);
+        });
     </script>
 </body>
 
